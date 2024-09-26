@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Discussion Portal</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --background-color: #ecf0f1;
+            --text-color: #34495e;
+            --border-color: #bdc3c7;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        .left-pane {
+            width: 30%;
+            border-right: 1px solid var(--border-color);
+            padding: 1rem;
+            overflow-y: auto;
+            background-color: white;
+        }
+
+        .right-pane {
+            width: 70%;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .question-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .question-item {
+            cursor: pointer;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.3s ease;
+        }
+
+        .question-item:hover {
+            background-color: var(--background-color);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .form-group input[type="text"],
+        .form-group textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .btn {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+        }
+
+        .search-container {
+            margin-bottom: 1rem;
+        }
+
+        #searchInput {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .response {
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Professional Discussion Portal</h1>
+    </div>
+    <div class="container">
+        <div class="left-pane">
+            <button id="newQuestionBtn" class="btn">New Question</button>
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search questions...">
+            </div>
+            <ul id="questionList" class="question-list"></ul>
+        </div>
+        <div class="right-pane" id="rightPane">
+            <div id="questionForm" class="card fade-in">
+                <h2>Welcome to Discussion Portal</h2>
+                <p>Enter a subject and question to get started</p>
+                <div class="form-group">
+                    <label for="subject">Subject</label>
+                    <input type="text" id="subject" required>
+                </div>
+                <div class="form-group">
+                    <label for="question">Question</label>
+                    <textarea id="question" rows="4" required></textarea>
+                </div>
+                <button id="submitQuestion" class="btn">Submit Question</button>
+            </div>
+            <div id="questionDetail" class="card fade-in" style="display: none;">
+                <h2 id="questionTitle"></h2>
+                <p id="questionContent"></p>
+                <button id="resolveBtn" class="btn">Resolve</button>
+                <h3>Responses</h3>
+                <div id="responseList"></div>
+                <h3>Add Response</h3>
+                <div class="form-group">
+                    <label for="responseName">Name</label>
+                    <input type="text" id="responseName" required>
+                </div>
+                <div class="form-group">
+                    <label for="responseComment">Comment</label>
+                    <textarea id="responseComment" rows="4" required></textarea>
+                </div>
+                <button id="submitResponse" class="btn">Submit Response</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        let questions = [];
+        let currentQuestionId = null;
+
+        document.getElementById('newQuestionBtn').addEventListener('click', showQuestionForm);
+        document.getElementById('submitQuestion').addEventListener('click', submitQuestion);
+        document.getElementById('submitResponse').addEventListener('click', submitResponse);
+        document.getElementById('resolveBtn').addEventListener('click', resolveQuestion);
+        document.getElementById('searchInput').addEventListener('input', searchQuestions);
+
+        function showQuestionForm() {
+            document.getElementById('questionForm').style.display = 'block';
+            document.getElementById('questionDetail').style.display = 'none';
+            animateFadeIn(document.getElementById('questionForm'));
+        }
+
+        function submitQuestion() {
+            const subject = document.getElementById('subject').value;
+            const question = document.getElementById('question').value;
+            if (subject && question) {
+                const newQuestion = {
+                    id: Date.now(),
+                    subject: subject,
+                    question: question,
+                    responses: []
+                };
+                questions.push(newQuestion);
+                updateQuestionList();
+                document.getElementById('subject').value = '';
+                document.getElementById('question').value = '';
+                showNotification('Question submitted successfully!');
+            }
+        }
+
+        function updateQuestionList() {
+            const questionList = document.getElementById('questionList');
+            questionList.innerHTML = '';
+            questions.forEach(q => {
+                const li = document.createElement('li');
+                li.textContent = q.subject;
+                li.classList.add('question-item');
+                li.addEventListener('click', () => showQuestionDetail(q.id));
+                questionList.appendChild(li);
+            });
+        }
+
+        function showQuestionDetail(questionId) {
+            currentQuestionId = questionId;
+            const question = questions.find(q => q.id === questionId);
+            document.getElementById('questionForm').style.display = 'none';
+            document.getElementById('questionDetail').style.display = 'block';
+            document.getElementById('questionTitle').textContent = question.subject;
+            document.getElementById('questionContent').textContent = question.question;
+            updateResponseList(question);
+            animateFadeIn(document.getElementById('questionDetail'));
+        }
+
+        function updateResponseList(question) {
+            const responseList = document.getElementById('responseList');
+            responseList.innerHTML = '';
+            question.responses.forEach(r => {
+                const div = document.createElement('div');
+                div.classList.add('response');
+                div.innerHTML = `<strong>${r.name}</strong>: ${r.comment}`;
+                responseList.appendChild(div);
+            });
+        }
+
+        function submitResponse() {
+            const name = document.getElementById('responseName').value;
+            const comment = document.getElementById('responseComment').value;
+            if (name && comment) {
+                const question = questions.find(q => q.id === currentQuestionId);
+                question.responses.push({ name, comment });
+                updateResponseList(question);
+                document.getElementById('responseName').value = '';
+                document.getElementById('responseComment').value = '';
+                showNotification('Response submitted successfully!');
+            }
+        }
+
+        function resolveQuestion() {
+            questions = questions.filter(q => q.id !== currentQuestionId);
+            updateQuestionList();
+            showQuestionForm();
+            showNotification('Question resolved successfully!');
+        }
+
+        function searchQuestions() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filteredQuestions = questions.filter(q => 
+                q.subject.toLowerCase().includes(searchTerm) || 
+                q.question.toLowerCase().includes(searchTerm)
+            );
+            const questionList = document.getElementById('questionList');
+            questionList.innerHTML = '';
+            filteredQuestions.forEach(q => {
+                const li = document.createElement('li');
+                li.textContent = q.subject;
+                li.classList.add('question-item');
+                li.addEventListener('click', () => showQuestionDetail(q.id));
+                questionList.appendChild(li);
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.textContent = message;
+            notification.style.position = 'fixed';
+            notification.style.top = '20px';
+            notification.style.right = '20px';
+            notification.style.backgroundColor = '#2ecc71';
+            notification.style.color = 'white';
+            notification.style.padding = '10px';
+            notification.style.borderRadius = '4px';
+            notification.style.zIndex = '1000';
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        function animateFadeIn(element) {
+            element.classList.remove('fade-in');
+            void element.offsetWidth; // Trigger reflow
+            element.classList.add('fade-in');
+        }
+    </script>
+</body>
+</html>
